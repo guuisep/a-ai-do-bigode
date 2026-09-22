@@ -39,7 +39,7 @@ export default function CardapioDigitalPage() {
             >
               Monte seu Açaí 🥭
             </Link>
-            
+            <a
               href={whatsappGeral}
               className="inline-flex items-center gap-2 rounded-full border border-cream/40 text-cream font-semibold px-6 py-3 hover:border-bigode hover:text-bigode transition-colors"
             >
@@ -49,7 +49,7 @@ export default function CardapioDigitalPage() {
 
           <div className="flex flex-wrap justify-center gap-3 mt-2">
             {linksPlataformas.map((p) => (
-              
+              <a
                 key={p.nome}
                 href={p.url}
                 className="text-sm text-cream/90 border border-cream/30 rounded-full px-4 py-1.5 hover:border-bigode hover:text-bigode transition-colors"
@@ -106,7 +106,7 @@ export default function CardapioDigitalPage() {
                     <span className="font-semibold text-acai-dark">
                       {item.preco}
                     </span>
-                    
+                    <a
                       href={link}
                       className="text-sm rounded-full bg-acai text-cream px-4 py-1.5 hover:bg-acai-light transition-colors"
                     >
