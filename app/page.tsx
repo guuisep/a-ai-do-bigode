@@ -1,6 +1,6 @@
 import Image from "next/image";
-import { itensCardapio } from "@/data/cardapio";
-import { buildWhatsappLink, buildPedidoCardapioMensagem } from "@/lib/whatsapp";
+import { itensCardapio } from "../data/cardapio";
+import { buildWhatsappLink, buildPedidoCardapioMensagem } from "../lib/whatsapp";
 
 const linksPlataformas = [
   { nome: "iFood", url: "#" },
