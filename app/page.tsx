@@ -1,6 +1,7 @@
 import Image from "next/image";
-import { itensCardapio } from "../data/cardapio";
-import { buildWhatsappLink, buildPedidoCardapioMensagem } from "../lib/whatsapp";
+import Link from "next/link";
+import { itensCardapio } from "@/data/cardapio";
+import { buildWhatsappLink, buildPedidoCardapioMensagem } from "@/lib/whatsapp";
 
 const linksPlataformas = [
   { nome: "iFood", url: "#" },
@@ -31,16 +32,24 @@ export default function CardapioDigitalPage() {
           </p>
           <p className="text-cream/80 text-sm">Zona Leste de São Paulo</p>
 
-          <a
-            href={whatsappGeral}
-            className="mt-4 inline-flex items-center gap-2 rounded-full bg-bigode text-acai-dark font-semibold px-6 py-3 hover:bg-bigode-light transition-colors"
-          >
-            Falar no WhatsApp
-          </a>
+          <div className="mt-4 flex flex-col sm:flex-row items-center gap-3">
+            <Link
+              href="/laboratorio"
+              className="inline-flex items-center gap-2 rounded-full bg-bigode text-acai-dark font-semibold px-6 py-3 hover:bg-bigode-light transition-colors"
+            >
+              Monte seu Açaí 🥭
+            </Link>
+            
+              href={whatsappGeral}
+              className="inline-flex items-center gap-2 rounded-full border border-cream/40 text-cream font-semibold px-6 py-3 hover:border-bigode hover:text-bigode transition-colors"
+            >
+              Falar no WhatsApp
+            </a>
+          </div>
 
           <div className="flex flex-wrap justify-center gap-3 mt-2">
             {linksPlataformas.map((p) => (
-              <a
+              
                 key={p.nome}
                 href={p.url}
                 className="text-sm text-cream/90 border border-cream/30 rounded-full px-4 py-1.5 hover:border-bigode hover:text-bigode transition-colors"
@@ -97,7 +106,7 @@ export default function CardapioDigitalPage() {
                     <span className="font-semibold text-acai-dark">
                       {item.preco}
                     </span>
-                    <a
+                    
                       href={link}
                       className="text-sm rounded-full bg-acai text-cream px-4 py-1.5 hover:bg-acai-light transition-colors"
                     >
