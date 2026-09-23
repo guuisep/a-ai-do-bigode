@@ -31,15 +31,66 @@ const NOME_TIPO: Record<string, string> = {
   parede: "Parede do copo",
 };
 
+const FORMATO_POR_TAMANHO: Record<string, "copo" | "pote"> = {
+  "500ml": "copo",
+  "700ml": "copo",
+  "1L": "pote",
+};
+
+const CLIP_PATH: Record<"copo" | "pote", string> = {
+  copo: "polygon(14% 0%, 86% 0%, 78% 100%, 22% 100%)",
+  pote: "polygon(4% 0%, 96% 0%, 90% 100%, 10% 100%)",
+};
+
+const DIMENSOES: Record<string, { largura: number; altura: number }> = {
+  "500ml": { largura: 112, altura: 168 },
+  "700ml": { largura: 132, altura: 208 },
+  "1L": { largura: 224, altura: 132 },
+};
+
+const DIMENSOES_MINI: Record<string, { largura: number; altura: number }> = {
+  "500ml": { largura: 56, altura: 84 },
+  "700ml": { largura: 66, altura: 104 },
+  "1L": { largura: 100, altura: 60 },
+};
+
+function texturaIngrediente(tipo: string, cor: string): React.CSSProperties {
+  switch (tipo) {
+    case "fruta":
+      return {
+        backgroundColor: cor,
+        backgroundImage:
+          "radial-gradient(circle at 25% 30%, rgba(255,255,255,0.4) 0 18%, transparent 19%), " +
+          "radial-gradient(circle at 65% 65%, rgba(255,255,255,0.3) 0 14%, transparent 15%), " +
+          "radial-gradient(circle at 85% 25%, rgba(255,255,255,0.25) 0 10%, transparent 11%)",
+        backgroundSize: "26px 26px, 22px 22px, 18px 18px",
+        backgroundRepeat: "repeat",
+      };
+    case "seco":
+      return {
+        backgroundColor: cor,
+        backgroundImage:
+          "repeating-radial-gradient(circle at center, rgba(255,255,255,0.55) 0 1.2px, transparent 1.6px 7px)",
+        backgroundSize: "9px 9px",
+      };
+    case "creme_nobre":
+      return {
+        backgroundColor: cor,
+        backgroundImage:
+          "repeating-linear-gradient(115deg, rgba(255,255,255,0.18) 0 5px, transparent 5px 13px)",
+      };
+    default:
+      return { backgroundColor: cor };
+  }
+}
+
 export default function LaboratorioPage() {
   const [etapa, setEtapa] = useState<Etapa>("identificacao");
   const [carregando, setCarregando] = useState(true);
 
-  // Dados vindos do banco
   const [tamanhos, setTamanhos] = useState<TamanhoCopo[]>([]);
   const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
 
-  // Identificação do criador
   const [nome, setNome] = useState("");
   const [instagram, setInstagram] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -47,14 +98,17 @@ export default function LaboratorioPage() {
   const [criadorId, setCriadorId] = useState<string | null>(null);
   const [erroIdentificacao, setErroIdentificacao] = useState<string | null>(null);
 
-  // Montagem do copo
   const [tamanhoEscolhido, setTamanhoEscolhido] = useState<TamanhoCopo | null>(null);
-  const [apenasAcai, setApenasAcai] = useState(false);
+  const [tamanhoAnimando, setTamanhoAnimando] = useState<string | null>(null);
   const [camadas, setCamadas] = useState<Camada[]>([]);
   const [potinho, setPotinho] = useState<ItemPotinho[]>([]);
   const [nomeCopo, setNomeCopo] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [erroFinalizar, setErroFinalizar] = useState<string | null>(null);
+
+  const whatsappGeral = buildWhatsappLink(
+    "Olá! Quero pedir um açaí tradicional, sem montar no Laboratório 🥭"
+  );
 
   useEffect(() => {
     async function carregar() {
@@ -107,12 +161,16 @@ export default function LaboratorioPage() {
     setEtapa("tamanho");
   }
 
-  function escolherTamanho(tamanho: TamanhoCopo) {
-    setTamanhoEscolhido(tamanho);
-    setCamadas([]);
-    setPotinho([]);
-    setApenasAcai(false);
-    setEtapa("montagem");
+  function handleEscolherTamanho(tamanho: TamanhoCopo) {
+    if (tamanhoAnimando) return;
+    setTamanhoAnimando(tamanho.id);
+    setTimeout(() => {
+      setTamanhoEscolhido(tamanho);
+      setCamadas([]);
+      setPotinho([]);
+      setEtapa("montagem");
+      setTamanhoAnimando(null);
+    }, 450);
   }
 
   function contarNoTipo(tipo: string): number {
@@ -120,7 +178,6 @@ export default function LaboratorioPage() {
   }
 
   function podeAdicionar(ingrediente: Ingrediente): boolean {
-    if (apenasAcai) return false;
     if (ingrediente.tipo === "parede") return true;
     const chaveLimite = LIMITE_POR_TIPO[ingrediente.tipo];
     if (!chaveLimite || !tamanhoEscolhido) return true;
@@ -181,7 +238,7 @@ export default function LaboratorioPage() {
         criador_id: criadorId,
         tamanho_id: tamanhoEscolhido.id,
         nome_copo: nomeCopo.trim(),
-        apenas_acai: apenasAcai,
+        apenas_acai: false,
         preco_final: precoFinal,
       })
       .select("id")
@@ -267,7 +324,11 @@ export default function LaboratorioPage() {
       )}
 
       {etapa === "tamanho" && (
-        <TamanhoEtapa tamanhos={tamanhos} onEscolher={escolherTamanho} />
+        <TamanhoEtapa
+          tamanhos={tamanhos}
+          tamanhoAnimando={tamanhoAnimando}
+          onEscolher={handleEscolherTamanho}
+        />
       )}
 
       {etapa === "montagem" && tamanhoEscolhido && (
@@ -276,15 +337,13 @@ export default function LaboratorioPage() {
           ingredientes={ingredientes}
           camadas={camadas}
           potinho={potinho}
-          apenasAcai={apenasAcai}
-          setApenasAcai={setApenasAcai}
           podeAdicionar={podeAdicionar}
-          contarNoTipo={contarNoTipo}
           onAdicionar={adicionarCamada}
           onRemover={removerCamada}
           onMover={moverCamada}
           onAlterarPotinho={alterarPotinho}
           onContinuar={() => setEtapa("finalizar")}
+          whatsappGeral={whatsappGeral}
         />
       )}
 
@@ -349,7 +408,7 @@ function IdentificacaoEtapa(props: {
         />
         <input
           className="rounded-xl border border-acai/20 px-4 py-3 bg-white tracking-widest"
-          placeholder="PIN de 4 dígitos"
+          placeholder="Crie um PIN de 4 números (você escolhe)"
           inputMode="numeric"
           maxLength={4}
           value={props.pin}
@@ -376,82 +435,151 @@ function IdentificacaoEtapa(props: {
 }
 
 // ==================================================
-// Etapa 2 — Escolha do tamanho
+// Formato visual do copo/pote (reaproveitado nas duas etapas)
+// ==================================================
+function FormaRecipiente(props: {
+  tamanhoNome: string;
+  largura: number;
+  altura: number;
+  children?: React.ReactNode;
+}) {
+  const formato = FORMATO_POR_TAMANHO[props.tamanhoNome] ?? "copo";
+  return (
+    <div
+      className="relative border-2 border-acai/30 bg-white/50 overflow-hidden flex flex-col-reverse"
+      style={{
+        width: props.largura,
+        height: props.altura,
+        clipPath: CLIP_PATH[formato],
+      }}
+    >
+      {props.children}
+    </div>
+  );
+}
+
+// ==================================================
+// Etapa 2 — Escolha do tamanho, com animação
 // ==================================================
 function TamanhoEtapa(props: {
   tamanhos: TamanhoCopo[];
+  tamanhoAnimando: string | null;
   onEscolher: (t: TamanhoCopo) => void;
 }) {
-  const alturas: Record<string, string> = { "500ml": "h-24", "700ml": "h-32", "1L": "h-40" };
-
   return (
     <section className="max-w-md mx-auto px-6 py-10">
-      <h2 className="font-display text-2xl text-acai-dark mb-6 text-center">
+      <h2 className="font-display text-2xl text-acai-dark mb-8 text-center">
         Escolha o tamanho
       </h2>
-      <div className="flex items-end justify-center gap-4">
-        {props.tamanhos.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => props.onEscolher(t)}
-            className="flex flex-col items-center gap-2 group"
-          >
-            <div
-              className={`w-16 ${alturas[t.nome] ?? "h-28"} rounded-b-2xl rounded-t-md border-2 border-acai/30 bg-white group-hover:border-bigode group-hover:bg-bigode/10 transition-colors`}
-            />
-            <span className="text-sm font-medium text-acai-dark">{t.nome}</span>
-          </button>
-        ))}
+      <div className="flex items-end justify-center gap-5 min-h-[13rem]">
+        {props.tamanhos.map((t) => {
+          const dim = DIMENSOES_MINI[t.nome] ?? { largura: 60, altura: 90 };
+          const estaAnimando = props.tamanhoAnimando !== null;
+          const escolhido = props.tamanhoAnimando === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => props.onEscolher(t)}
+              disabled={estaAnimando}
+              className={`flex flex-col items-center gap-2 transition-all duration-500 ease-out ${
+                escolhido
+                  ? "scale-125 opacity-100 z-10"
+                  : estaAnimando
+                  ? "scale-75 opacity-0"
+                  : "scale-100 opacity-100 hover:scale-105"
+              }`}
+            >
+              <FormaRecipiente tamanhoNome={t.nome} largura={dim.largura} altura={dim.altura} />
+              <span className="text-sm font-medium text-acai-dark">{t.nome}</span>
+            </button>
+          );
+        })}
       </div>
     </section>
   );
 }
 
 // ==================================================
-// Etapa 3 — Montagem (copo transparente + blocos)
+// Etapa 3 — Montagem (copo com formato real + texturas)
 // ==================================================
 function MontagemEtapa(props: {
   tamanho: TamanhoCopo;
   ingredientes: Ingrediente[];
   camadas: Camada[];
   potinho: ItemPotinho[];
-  apenasAcai: boolean;
-  setApenasAcai: (v: boolean) => void;
   podeAdicionar: (i: Ingrediente) => boolean;
-  contarNoTipo: (tipo: string) => number;
   onAdicionar: (i: Ingrediente) => void;
   onRemover: (index: number) => void;
   onMover: (index: number, direcao: -1 | 1) => void;
   onAlterarPotinho: (i: Ingrediente, delta: number) => void;
   onContinuar: () => void;
+  whatsappGeral: string;
 }) {
-  const gruposIngredientes = ["creme_nobre", "fruta", "seco", "parede"] as const;
+  const gruposIngredientes = ["creme_nobre", "fruta", "seco"] as const;
+  const paredes = props.ingredientes.filter((i) => i.tipo === "parede");
   const ingredientesParaPotinho = props.ingredientes.filter((i) => i.tipo !== "parede");
+  const camadasParede = props.camadas.filter((c) => c.tipoAplicacao === "parede");
+  const camadasNormais = props.camadas.filter((c) => c.tipoAplicacao !== "parede");
+  const dim = DIMENSOES[props.tamanho.nome] ?? { largura: 160, altura: 200 };
 
   return (
     <section className="max-w-md mx-auto px-6 py-8">
-      {/* Copo transparente */}
-      <div className="flex justify-center mb-6">
-        <div className="w-40 min-h-[10rem] rounded-b-3xl rounded-t-lg border-2 border-acai/30 bg-white/40 backdrop-blur-sm flex flex-col-reverse overflow-hidden">
-          {props.camadas.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center text-xs text-acai/40 p-4 text-center">
-              {props.tamanho.nome} — comece adicionando ingredientes
-            </div>
-          ) : (
-            props.camadas.map((c, i) => (
-              <div
-                key={i}
-                className="h-8 flex items-center justify-center text-[10px] text-white/90 font-medium"
-                style={{ backgroundColor: c.ingrediente.cor }}
-              >
-                {c.ingrediente.nome}
+      <div className="flex justify-center mb-2">
+        <div className="relative">
+          <FormaRecipiente tamanhoNome={props.tamanho.nome} largura={dim.largura} altura={dim.altura}>
+            {camadasNormais.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center text-xs text-acai/40 p-4 text-center">
+                {props.tamanho.nome} — comece adicionando ingredientes
               </div>
-            ))
-          )}
+            ) : (
+              camadasNormais.map((c, i) => (
+                <div
+                  key={i}
+                  className="flex-1 min-h-[1.75rem] flex items-center justify-center text-[10px] text-white font-medium"
+                  style={{
+                    ...texturaIngrediente(c.ingrediente.tipo, c.ingrediente.cor),
+                    textShadow: "0 1px 2px rgba(0,0,0,0.4)",
+                  }}
+                >
+                  {c.ingrediente.nome}
+                </div>
+              ))
+            )}
+          </FormaRecipiente>
+
+          {camadasParede.map((c, i) => (
+            <div key={i}>
+              <div
+                className="absolute top-0 bottom-0 left-0 w-2.5 opacity-90"
+                style={{
+                  backgroundColor: c.ingrediente.cor,
+                  clipPath: "polygon(0 0, 100% 0, 100% 85%, 60% 100%, 30% 90%, 0 100%)",
+                }}
+              />
+              <div
+                className="absolute top-0 bottom-0 right-0 w-2.5 opacity-90"
+                style={{
+                  backgroundColor: c.ingrediente.cor,
+                  clipPath: "polygon(0 0, 100% 0, 100% 100%, 70% 90%, 40% 100%, 0 85%)",
+                }}
+              />
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Lista de camadas com reordenação */}
+      <p className="text-center text-xs text-acai/50 mb-6">
+        Quer só açaí puro, sem nada?{" "}
+        <Link href="/" className="underline hover:text-bigode">
+          Peça pelo Cardápio
+        </Link>{" "}
+        ou{" "}
+        <a href={props.whatsappGeral} className="underline hover:text-bigode">
+          chame no WhatsApp
+        </a>{" "}
+        — o Laboratório é pra combinações.
+      </p>
+
       {props.camadas.length > 0 && (
         <div className="mb-6 flex flex-col gap-1.5">
           {props.camadas.map((c, i) => (
@@ -460,16 +588,23 @@ function MontagemEtapa(props: {
               className="flex items-center gap-2 bg-white rounded-lg px-3 py-1.5 border border-acai/10"
             >
               <span
-                className="w-3 h-3 rounded-full shrink-0"
-                style={{ backgroundColor: c.ingrediente.cor }}
+                className="w-4 h-4 rounded-full shrink-0 border border-black/10"
+                style={texturaIngrediente(c.ingrediente.tipo, c.ingrediente.cor)}
               />
-              <span className="text-sm flex-1 text-acai-dark">{c.ingrediente.nome}</span>
-              <button onClick={() => props.onMover(i, -1)} className="text-acai/50 px-1">
-                ↑
-              </button>
-              <button onClick={() => props.onMover(i, 1)} className="text-acai/50 px-1">
-                ↓
-              </button>
+              <span className="text-sm flex-1 text-acai-dark">
+                {c.ingrediente.nome}
+                {c.tipoAplicacao === "parede" && <span className="text-acai/40"> (parede)</span>}
+              </span>
+              {c.tipoAplicacao !== "parede" && (
+                <>
+                  <button onClick={() => props.onMover(i, -1)} className="text-acai/50 px-1">
+                    ↑
+                  </button>
+                  <button onClick={() => props.onMover(i, 1)} className="text-acai/50 px-1">
+                    ↓
+                  </button>
+                </>
+              )}
               <button onClick={() => props.onRemover(i)} className="text-red-500 px-1">
                 ✕
               </button>
@@ -478,17 +613,6 @@ function MontagemEtapa(props: {
         </div>
       )}
 
-      {/* Apenas açaí */}
-      <label className="flex items-center gap-2 mb-6 text-sm text-acai-dark">
-        <input
-          type="checkbox"
-          checked={props.apenasAcai}
-          onChange={(e) => props.setApenasAcai(e.target.checked)}
-        />
-        Apenas açaí (sem complementos)
-      </label>
-
-      {/* Paleta de ingredientes por tipo */}
       {gruposIngredientes.map((tipo) => {
         const itens = props.ingredientes.filter((i) => i.tipo === tipo);
         if (itens.length === 0) return null;
@@ -509,12 +633,16 @@ function MontagemEtapa(props: {
                     key={ing.id}
                     disabled={!habilitado}
                     onClick={() => props.onAdicionar(ing)}
-                    className={`text-sm rounded-full px-3 py-1.5 border transition-colors ${
+                    className={`flex items-center gap-1.5 text-sm rounded-full pl-1.5 pr-3 py-1 border transition-colors ${
                       habilitado
                         ? "border-acai/20 bg-white hover:border-bigode hover:bg-bigode/10 text-acai-dark"
                         : "border-acai/10 bg-acai/5 text-acai/30 cursor-not-allowed"
                     }`}
                   >
+                    <span
+                      className="w-4 h-4 rounded-full border border-black/10"
+                      style={texturaIngrediente(ing.tipo, ing.cor)}
+                    />
                     {ing.nome}
                   </button>
                 );
@@ -524,7 +652,27 @@ function MontagemEtapa(props: {
         );
       })}
 
-      {/* Potinho adicional */}
+      {paredes.length > 0 && (
+        <div className="mb-5">
+          <p className="text-xs font-semibold text-acai/60 mb-2">{NOME_TIPO.parede}</p>
+          <div className="flex flex-wrap gap-2">
+            {paredes.map((ing) => (
+              <button
+                key={ing.id}
+                onClick={() => props.onAdicionar(ing)}
+                className="flex items-center gap-1.5 text-sm rounded-full pl-1.5 pr-3 py-1 border border-acai/20 bg-white hover:border-bigode hover:bg-bigode/10 text-acai-dark transition-colors"
+              >
+                <span
+                  className="w-4 h-4 rounded-full border border-black/10"
+                  style={{ backgroundColor: ing.cor }}
+                />
+                {ing.nome}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mb-8">
         <p className="text-xs font-semibold text-acai/60 mb-2">
           Potinho adicional (ilimitado, cobrado por unidade)
@@ -540,17 +688,11 @@ function MontagemEtapa(props: {
               >
                 <span className="text-sm text-acai-dark">{ing.nome}</span>
                 <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => props.onAlterarPotinho(ing, -1)}
-                    className="text-acai/50 w-6"
-                  >
+                  <button onClick={() => props.onAlterarPotinho(ing, -1)} className="text-acai/50 w-6">
                     −
                   </button>
                   <span className="text-sm w-4 text-center">{qtd}</span>
-                  <button
-                    onClick={() => props.onAlterarPotinho(ing, 1)}
-                    className="text-acai/50 w-6"
-                  >
+                  <button onClick={() => props.onAlterarPotinho(ing, 1)} className="text-acai/50 w-6">
                     +
                   </button>
                 </div>
